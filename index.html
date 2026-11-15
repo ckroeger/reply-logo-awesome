@@ -1,0 +1,430 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Reply · three.js Logo Demo</title>
+<style>
+  html, body { margin: 0; height: 100%; background: #04070a; overflow: hidden; }
+  canvas { display: block; width: 100%; height: 100%; touch-action: none; cursor: grab; }
+  canvas:active { cursor: grabbing; }
+  #hint {
+    position: fixed; left: 0; right: 0; bottom: 28px; text-align: center;
+    font: 500 12px/1.4 system-ui, -apple-system, "Segoe UI", sans-serif;
+    letter-spacing: .18em; text-transform: uppercase;
+    color: rgba(214, 255, 230, .55); pointer-events: none;
+    opacity: 0; transition: opacity 1.2s ease;
+  }
+  #hint.show { opacity: 1; }
+  #hint b { color: #02d34a; font-weight: 600; }
+  #error {
+    position: fixed; inset: 0; display: none; align-items: center; justify-content: center;
+    padding: 24px; text-align: center; color: #d6ffe6;
+    font: 15px/1.5 system-ui, sans-serif;
+  }
+</style>
+</head>
+<body>
+<div id="hint"><b>Klick</b> zerlegt das Logo &nbsp;·&nbsp; <b>Ziehen</b> dreht &nbsp;·&nbsp; <b>Scrollen</b> zoomt</div>
+<div id="error">Diese Demo benötigt WebGL 2 und eine Internetverbindung (three.js wird per CDN geladen).</div>
+
+<!-- Offizielles Reply-Logo (Vektorpfade), wird zur Laufzeit in 3D extrudiert -->
+<script type="image/svg+xml" id="logo-svg">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128.744 34.232601">
+  <g transform="translate(0,-14.8837)">
+    <path fill="#02d34a" d="m 27.3656,18.3166 c 0,-1.8964 1.5353,-3.4329 3.4357,-3.4329 1.8916,0 3.4313,1.5365 3.4313,3.4329 0,1.8921 -1.5397,3.4242 -3.4313,3.4242 -1.9004,0 -3.4357,-1.5321 -3.4357,-3.4242 z m 0.1956,5.3513 -4.2935,5.6411 -1.0865,1.4618 5.1952,6.9888 c 0.286,0.3819 0.44,0.8472 0.4356,1.3257 l -0.0352,9.2408 c 0,0.439 -0.3564,0.7902 -0.7919,0.7902 h -0.607 c -0.3959,0 -0.7347,-0.2942 -0.7875,-0.6849 l -1.1305,-8.3276 c -0.0396,-0.2985 -0.1936,-0.5663 -0.4311,-0.7507 l -5.9519,-4.7192 -2.8198,1.7165 c -0.374,0.2239 -0.8007,0.3468 -1.2362,0.3556 L 2.24466,36.8991 C 1.90154,36.9035 1.56721,36.7631 1.33406,36.5128 L 0.141917,35.2354 C -0.14842,34.9281 0.0319411,34.4145 0.45425,34.3574 L 12.6484,32.6278 21.9172,22.689 14.4256,21.2798 c -0.2155,-0.0395 -0.4179,-0.1317 -0.585,-0.2678 l -1.2098,-0.9745 c -0.2639,-0.2107 -0.1143,-0.6322 0.2244,-0.6322 h 4.3154 l 7.8656,-0.0526 c 0.3035,-0.0044 0.585,0.1536 0.7478,0.4082 l 1.8212,2.9193 c 0.1936,0.3073 0.176,0.7024 -0.044,0.9877 z"/>
+    <path fill="#151f27" d="m 52.4587,27.2963 c 0,-1.7325 -1.3497,-2.7997 -3.1093,-2.7997 h -4.7042 v 5.6618 h 4.7042 c 1.7596,0 3.1093,-1.0716 3.1093,-2.8621 z m -0.441,14.2481 -4.1117,-7.4567 h -3.2608 v 7.4567 H 40.186 V 20.5629 h 9.7915 c 4.3611,0 7.0607,2.8621 7.0607,6.7646 0,3.6793 -2.3521,5.693 -4.6106,6.2244 l 4.7353,7.9925 z"/>
+    <path fill="#151f27" d="M 60.363,41.5444 V 20.5629 h 14.8075 v 3.9337 H 64.8177 v 4.4026 h 10.1345 v 3.9293 H 64.8177 v 4.7822 h 10.3528 v 3.9337 z"/>
+    <path fill="#151f27" d="m 90.927,27.3275 c 0,-1.7637 -1.3453,-2.8309 -3.1049,-2.8309 h -4.7086 v 5.6305 h 4.7086 c 1.7596,0 3.1049,-1.0716 3.1049,-2.7996 z M 78.6588,41.5444 V 20.5629 h 9.7914 c 4.5483,0 7.0295,3.0809 7.0295,6.7646 0,3.648 -2.5124,6.7289 -7.0295,6.7289 h -5.3367 v 7.488 z"/>
+    <path fill="#151f27" d="M 98.0818,41.5444 V 20.5629 h 4.4902 v 17.0478 h 8.847 v 3.9337 z"/>
+    <path fill="#151f27" d="M 116.284,41.5444 V 32.958 l -8.031,-12.3951 h 5.082 l 5.177,8.3989 5.176,-8.3989 h 5.056 l -8.005,12.3951 v 8.5864 z"/>
+  </g>
+</svg>
+</script>
+
+<script type="importmap">
+{ "imports": {
+    "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js",
+    "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/"
+} }
+</script>
+
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { SVGLoader } from 'three/addons/loaders/SVGLoader.js';
+import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
+import { MeshSurfaceSampler } from 'three/addons/math/MeshSurfaceSampler.js';
+import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
+import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
+import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
+import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
+import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
+
+const BG = new THREE.Color(0x04070a);
+const GREEN = new THREE.Color(0x02d34a);
+const LOGO_WIDTH = 10;          // Weltbreite des Logos
+const FLOOR_Y = -1.5;
+const T_OFFSET = Number(new URLSearchParams(location.search).get('t')) || 0;
+const isMobile = matchMedia('(max-width: 800px)').matches;
+const PARTICLES = isMobile ? 28000 : 70000;
+
+// ---------- Renderer / Szene ----------
+const renderer = new THREE.WebGLRenderer({ antialias: false, powerPreference: 'high-performance' });
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+renderer.setSize(innerWidth, innerHeight);
+renderer.toneMapping = THREE.NeutralToneMapping;   // erhält die Markenfarbe besser als ACES
+renderer.toneMappingExposure = 1.05;
+document.body.prepend(renderer.domElement);
+
+const scene = new THREE.Scene();
+scene.background = BG;
+
+const pmrem = new THREE.PMREMGenerator(renderer);
+scene.environment = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
+scene.environmentIntensity = 0.4;
+
+const camera = new THREE.PerspectiveCamera(32, innerWidth / innerHeight, 0.1, 200);
+camera.position.set(0, 2.4, 18);
+
+const controls = new OrbitControls(camera, renderer.domElement);
+controls.target.set(0, -0.45, 0);
+controls.enableDamping = true;
+controls.dampingFactor = 0.06;
+controls.enablePan = false;
+controls.minDistance = 7;
+controls.maxDistance = 60;
+controls.minPolarAngle = 0.5;
+controls.maxPolarAngle = Math.PI / 2 + 0.08;
+
+// ---------- Logo-Geometrie aus dem SVG ----------
+const svg = new SVGLoader().parse(document.getElementById('logo-svg').textContent);
+const figureParts = [], letterParts = [];
+for (const path of svg.paths) {
+  const geo = new THREE.ExtrudeGeometry(SVGLoader.createShapes(path), {
+    depth: 5, curveSegments: 20,
+    bevelEnabled: true, bevelThickness: 0.55, bevelSize: 0.3, bevelOffset: -0.3, bevelSegments: 5,
+  });
+  (path.color.g > 0.5 ? figureParts : letterParts).push(geo);
+}
+const figureGeo = mergeGeometries(figureParts);
+const lettersGeo = mergeGeometries(letterParts);
+
+// zentrieren, y-Achse des SVG umdrehen (Rotation statt Spiegelung -> Winding bleibt korrekt), skalieren
+const box = new THREE.Box3()
+  .union(figureGeo.computeBoundingBox() || figureGeo.boundingBox)
+  .union(lettersGeo.computeBoundingBox() || lettersGeo.boundingBox);
+const c = box.getCenter(new THREE.Vector3());
+const s = LOGO_WIDTH / (box.max.x - box.min.x);
+const fix = new THREE.Matrix4()
+  .makeScale(s, s, s)
+  .multiply(new THREE.Matrix4().makeRotationX(Math.PI))
+  .multiply(new THREE.Matrix4().makeTranslation(-c.x, -c.y, -c.z));
+figureGeo.applyMatrix4(fix);
+lettersGeo.applyMatrix4(fix);
+
+const figureMat = new THREE.MeshPhysicalMaterial({
+  color: GREEN, emissive: GREEN, emissiveIntensity: 0.10,
+  metalness: 0, roughness: 0.45, clearcoat: 0.25, clearcoatRoughness: 0.3,
+  envMap: scene.environment, envMapIntensity: 0.2,
+});
+const lettersMat = new THREE.MeshPhysicalMaterial({
+  color: 0xeef3f6, metalness: 1, roughness: 0.2, clearcoat: 0.6, clearcoatRoughness: 0.2,
+});
+const solidMats = [figureMat, lettersMat];
+
+// ---------- Partikel, die sich zum Logo formen ----------
+function withColor(geo, col) {
+  const g = geo.clone();
+  const n = g.attributes.position.count;
+  const arr = new Float32Array(n * 3);
+  for (let i = 0; i < n; i++) col.toArray(arr, i * 3);
+  g.setAttribute('color', new THREE.BufferAttribute(arr, 3));
+  return g;
+}
+const sampleGeo = mergeGeometries([
+  withColor(figureGeo, new THREE.Color(0.02, 1.0, 0.36)),
+  withColor(lettersGeo, new THREE.Color(0.72, 0.92, 1.0)),
+]);
+const sampler = new MeshSurfaceSampler(new THREE.Mesh(sampleGeo)).build();
+
+const pTarget = new Float32Array(PARTICLES * 3);
+const pNormal = new Float32Array(PARTICLES * 3);
+const pColor  = new Float32Array(PARTICLES * 3);
+const pStart  = new Float32Array(PARTICLES * 3);
+const pSeed   = new Float32Array(PARTICLES * 4);
+{
+  const P = new THREE.Vector3(), N = new THREE.Vector3(), C = new THREE.Color();
+  for (let i = 0; i < PARTICLES; i++) {
+    sampler.sample(P, N, C);
+    P.toArray(pTarget, i * 3); N.toArray(pNormal, i * 3); C.toArray(pColor, i * 3);
+    // Start: abgeflachte Galaxie um das Logo
+    const r = 5 + Math.pow(Math.random(), 0.7) * 17;
+    const a = Math.random() * Math.PI * 2;
+    pStart[i * 3]     = Math.cos(a) * r;
+    pStart[i * 3 + 1] = (Math.random() - 0.5) * (2 + r * 0.45);
+    pStart[i * 3 + 2] = Math.sin(a) * r;
+    for (let k = 0; k < 4; k++) pSeed[i * 4 + k] = Math.random();
+  }
+}
+const pGeo = new THREE.BufferGeometry();
+pGeo.setAttribute('position', new THREE.BufferAttribute(pTarget, 3));
+pGeo.setAttribute('aNormal',  new THREE.BufferAttribute(pNormal, 3));
+pGeo.setAttribute('aColor',   new THREE.BufferAttribute(pColor, 3));
+pGeo.setAttribute('aStart',   new THREE.BufferAttribute(pStart, 3));
+pGeo.setAttribute('aSeed',    new THREE.BufferAttribute(pSeed, 4));
+pGeo.boundingSphere = new THREE.Sphere(new THREE.Vector3(), 40);
+
+const pMat = new THREE.ShaderMaterial({
+  transparent: true, depthWrite: false, blending: THREE.AdditiveBlending,
+  uniforms: {
+    uTime: { value: 0 }, uProgress: { value: 0 },
+    uScale: { value: 1 },
+  },
+  vertexShader: /* glsl */`
+    attribute vec3 aNormal, aColor, aStart;
+    attribute vec4 aSeed;
+    uniform float uTime, uProgress, uScale;
+    varying vec3 vColor;
+    varying float vAlpha;
+    void main() {
+      // jedes Partikel landet leicht versetzt
+      float p = clamp(uProgress * 1.6 - aSeed.x * 0.6, 0.0, 1.0);
+      p = 1.0 - pow(1.0 - p, 3.0);
+
+      float ang = uTime * 0.1 + (1.0 - p) * (1.5 + aSeed.y * 2.5);
+      float ca = cos(ang), sa = sin(ang);
+      vec3 start = vec3(ca * aStart.x - sa * aStart.z, aStart.y, sa * aStart.x + ca * aStart.z);
+
+      float shimmer = 0.5 + 0.5 * sin(uTime * (1.0 + aSeed.w * 2.0) + aSeed.z * 6.2831);
+      vec3 target = position + aNormal * (0.01 + 0.03 * shimmer * aSeed.y);
+
+      vec3 pos = mix(start, target, p);
+      float mid = sin(p * 3.14159);
+      pos += vec3(sin(aSeed.z * 40.0 + uTime), cos(aSeed.w * 40.0 + uTime * 1.3), sin(aSeed.x * 40.0 + uTime * 0.7)) * mid * 0.9;
+
+      vec4 mv = modelViewMatrix * vec4(pos, 1.0);
+      gl_Position = projectionMatrix * mv;
+      gl_PointSize = min(uScale * (0.4 + aSeed.w) * mix(0.075, 0.035, p) / -mv.z, uScale * 0.016);
+
+      vec3 wild = mix(vec3(0.02, 0.9, 0.35), vec3(0.6, 0.95, 1.0), step(0.72, aSeed.z));
+      vColor = mix(wild, aColor, smoothstep(0.2, 0.9, p));
+      vAlpha = mix(0.6, 0.6 * pow(shimmer, 10.0), p);
+    }`,
+  fragmentShader: /* glsl */`
+    varying vec3 vColor;
+    varying float vAlpha;
+    void main() {
+      float d = length(gl_PointCoord - 0.5);
+      float a = smoothstep(0.5, 0.0, d);
+      gl_FragColor = vec4(vColor, vAlpha * a * a);
+    }`,
+});
+
+// ---------- Logo-Gruppe + gespiegelte Kopie für den Boden ----------
+function buildLogo(order) {
+  const g = new THREE.Group();
+  const fig = new THREE.Mesh(figureGeo, figureMat);
+  const let_ = new THREE.Mesh(lettersGeo, lettersMat);
+  const pts = new THREE.Points(pGeo, pMat);
+  fig.renderOrder = let_.renderOrder = order;
+  pts.renderOrder = order + 1;
+  g.add(fig, let_, pts);
+  g.userData.solids = [fig, let_];
+  return g;
+}
+const logo = buildLogo(2);
+scene.add(logo);
+
+const mirror = new THREE.Group();            // Spiegelung an der Bodenebene
+mirror.scale.y = -1;
+mirror.position.y = 2 * FLOOR_Y;
+const logoMirror = buildLogo(-2);
+mirror.add(logoMirror);
+scene.add(mirror);
+
+// ---------- Boden: halbtransparentes Raster mit Schockwelle ----------
+const floorMat = new THREE.ShaderMaterial({
+  transparent: true, depthWrite: false,
+  uniforms: { uBg: { value: BG }, uGreen: { value: GREEN }, uPulse: { value: 99 }, uTime: { value: 0 } },
+  vertexShader: /* glsl */`
+    varying vec2 vPos;
+    void main() { vPos = position.xy; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }`,
+  fragmentShader: /* glsl */`
+    uniform vec3 uBg, uGreen;
+    uniform float uPulse, uTime;
+    varying vec2 vPos;
+    float grid(vec2 p, float scale) {
+      vec2 q = p * scale;
+      vec2 g = abs(fract(q - 0.5) - 0.5) / fwidth(q);
+      return 1.0 - min(min(g.x, g.y), 1.0);
+    }
+    void main() {
+      float r = length(vPos);
+      float fade = exp(-r * 0.11);
+      float line = grid(vPos, 1.0) * 0.55 + grid(vPos, 0.25) * 0.45;
+      float ring = exp(-pow((r - uPulse * 13.0) * 0.9, 2.0)) * exp(-uPulse * 0.9);
+      float breathe = 0.85 + 0.15 * sin(uTime * 0.8 - r * 0.6);
+      vec3 col = uBg + uGreen * line * fade * (0.22 * breathe + ring * 2.5) + uGreen * ring * 0.10 * fade;
+      float alpha = mix(0.80, 1.0, smoothstep(3.0, 16.0, r));
+      gl_FragColor = vec4(col, alpha);
+    }`,
+});
+const floor = new THREE.Mesh(new THREE.PlaneGeometry(240, 240), floorMat);
+floor.rotation.x = -Math.PI / 2;
+floor.position.y = FLOOR_Y;
+floor.renderOrder = 0;
+scene.add(floor);
+
+// ---------- Atmosphäre: Glow hinter dem Logo + Staub ----------
+{
+  const cv = document.createElement('canvas'); cv.width = cv.height = 256;
+  const ctx = cv.getContext('2d');
+  const grd = ctx.createRadialGradient(128, 128, 0, 128, 128, 128);
+  grd.addColorStop(0, 'rgba(2,211,74,0.55)');
+  grd.addColorStop(0.35, 'rgba(2,160,90,0.16)');
+  grd.addColorStop(1, 'rgba(0,0,0,0)');
+  ctx.fillStyle = grd; ctx.fillRect(0, 0, 256, 256);
+  const tex = new THREE.CanvasTexture(cv); tex.colorSpace = THREE.SRGBColorSpace;
+  const glow = new THREE.Sprite(new THREE.SpriteMaterial({
+    map: tex, blending: THREE.AdditiveBlending, depthWrite: false, depthTest: false, opacity: 0.10,
+  }));
+  glow.scale.set(30, 15, 1);
+  glow.position.set(0, 0.2, -5);
+  glow.renderOrder = 1;
+  scene.add(glow);
+}
+const dust = (() => {
+  const n = 1800, arr = new Float32Array(n * 3), v = new THREE.Vector3();
+  for (let i = 0; i < n; i++) {
+    v.randomDirection().multiplyScalar(9 + Math.random() * 40);
+    v.y = Math.abs(v.y) * 0.6 + FLOOR_Y + 0.2;
+    v.toArray(arr, i * 3);
+  }
+  const g = new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.BufferAttribute(arr, 3));
+  const cv = document.createElement('canvas'); cv.width = cv.height = 32;
+  const ctx = cv.getContext('2d');
+  const grd = ctx.createRadialGradient(16, 16, 0, 16, 16, 16);
+  grd.addColorStop(0, '#fff'); grd.addColorStop(1, 'rgba(255,255,255,0)');
+  ctx.fillStyle = grd; ctx.fillRect(0, 0, 32, 32);
+  const pts = new THREE.Points(g, new THREE.PointsMaterial({
+    color: 0x9fffc8, size: 3 * renderer.getPixelRatio(), sizeAttenuation: false,
+    map: new THREE.CanvasTexture(cv), transparent: true, opacity: 0.55,
+    blending: THREE.AdditiveBlending, depthWrite: false,
+  }));
+  pts.renderOrder = 1;
+  scene.add(pts);
+  return pts;
+})();
+
+// ---------- Licht: zwei kreisende Punktlichter für wandernde Reflexe ----------
+const lightA = new THREE.PointLight(0x02d34a, 16, 40, 2);
+const lightB = new THREE.PointLight(0x8fd8ff, 30, 40, 2);
+scene.add(lightA, lightB);
+
+// ---------- Post-Processing ----------
+const rt = new THREE.WebGLRenderTarget(1, 1, { type: THREE.HalfFloatType, samples: 4 });
+const composer = new EffectComposer(renderer, rt);
+composer.addPass(new RenderPass(scene, camera));
+const bloom = new UnrealBloomPass(new THREE.Vector2(innerWidth, innerHeight), 0.42, 0.6, 0.92);
+composer.addPass(bloom);
+composer.addPass(new OutputPass());
+
+// ---------- Ablauf: zerlegen -> schweben -> zusammensetzen ----------
+const DOWN = 0.85, HOLD = 0.7, UP = 3.8;
+const seq = { t0: -DOWN, from: 0 };   // Intro startet in der Schwebephase
+let progress = 0, wasComplete = false, flash = 0, pulseT0 = -99;
+
+const easeOut = x => 1 - Math.pow(1 - x, 3);
+const smoother = x => x * x * x * (x * (x * 6 - 15) + 10);
+function progressAt(t) {
+  const x = t - seq.t0;
+  if (x < DOWN) return seq.from * (1 - easeOut(x / DOWN));
+  if (x < DOWN + HOLD) return 0;
+  if (x < DOWN + HOLD + UP) return smoother((x - DOWN - HOLD) / UP);
+  return 1;
+}
+function burst() {
+  seq.from = progress; seq.t0 = now(); pulseT0 = now();
+  hint.classList.remove('show');
+}
+
+// ---------- Eingaben ----------
+const hint = document.getElementById('hint');
+const pointer = new THREE.Vector2();
+let downAt = null;
+addEventListener('pointermove', e => {
+  pointer.set(e.clientX / innerWidth * 2 - 1, e.clientY / innerHeight * 2 - 1);
+});
+renderer.domElement.addEventListener('pointerdown', e => { downAt = [e.clientX, e.clientY]; });
+renderer.domElement.addEventListener('pointerup', e => {
+  if (downAt && Math.hypot(e.clientX - downAt[0], e.clientY - downAt[1]) < 6) burst();
+  downAt = null;
+});
+addEventListener('keydown', e => { if (e.code === 'Space') { e.preventDefault(); burst(); } });
+
+function resize() {
+  const w = innerWidth, h = innerHeight;
+  camera.aspect = w / h;
+  // Abstand so wählen, dass das Logo auch im Hochformat ins Bild passt
+  const fit = (LOGO_WIDTH * 0.5 * 1.45) / (Math.tan(THREE.MathUtils.degToRad(camera.fov / 2)) * camera.aspect);
+  const dist = Math.max(16, fit);
+  camera.position.sub(controls.target).setLength(dist).add(controls.target);
+  camera.updateProjectionMatrix();
+  renderer.setSize(w, h);
+  composer.setPixelRatio(renderer.getPixelRatio());
+  composer.setSize(w, h);
+  pMat.uniforms.uScale.value = h * renderer.getPixelRatio();
+}
+addEventListener('resize', resize);
+resize();
+
+// ---------- Loop ----------
+const clock = new THREE.Clock();
+const now = () => clock.getElapsedTime() + T_OFFSET;
+let last = now();
+
+renderer.setAnimationLoop(() => {
+  const t = now(), dt = Math.min(t - last, 0.1); last = t;
+
+  progress = progressAt(t);
+  const complete = progress >= 1;
+  if (complete && !wasComplete) { flash = 1; pulseT0 = t; hint.classList.add('show'); }
+  wasComplete = complete;
+  flash *= Math.exp(-dt * 2.2);
+
+  // massives Logo blendet ein, sobald die Partikel sitzen
+  const solid = THREE.MathUtils.smoothstep(progress, 0.84, 1.0);
+  for (const m of solidMats) { m.opacity = solid; m.transparent = solid < 1; }
+  for (const g of [logo, logoMirror]) for (const m of g.userData.solids) m.visible = solid > 0.001;
+  figureMat.emissiveIntensity = 0.10 + flash * 0.9 + 0.03 * Math.sin(t * 2.0);
+  bloom.strength = 0.42 + flash * 0.3;
+
+  pMat.uniforms.uTime.value = t;
+  pMat.uniforms.uProgress.value = progress;
+  floorMat.uniforms.uTime.value = t;
+  floorMat.uniforms.uPulse.value = t - pulseT0;
+
+  // sanftes Pendeln + Parallaxe zur Maus
+  const k = 1 - Math.exp(-dt * 3);
+  logo.rotation.y += (Math.sin(t * 0.35) * 0.24 + pointer.x * 0.22 - logo.rotation.y) * k;
+  logo.rotation.x += (pointer.y * 0.10 - logo.rotation.x) * k;
+  logo.position.y = Math.sin(t * 0.7) * 0.08;
+  logoMirror.rotation.copy(logo.rotation);
+  logoMirror.position.copy(logo.position);
+
+  lightA.position.set(Math.cos(t * 0.6) * 7, 1.5 + Math.sin(t * 0.9) * 1.5, 4 + Math.sin(t * 0.6) * 3);
+  lightB.position.set(Math.cos(t * 0.45 + 2.6) * 8, 2.5, 5 + Math.sin(t * 0.45 + 2.6) * 3);
+  dust.rotation.y = t * 0.012;
+
+  controls.update();
+  composer.render();
+});
+</script>
+<script>
+  // Fallback, falls WebGL oder das CDN nicht verfügbar ist
+  addEventListener('error', () => { if (!document.querySelector('canvas')) document.getElementById('error').style.display = 'flex'; }, true);
+</script>
+</body>
+</html>
